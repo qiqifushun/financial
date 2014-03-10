@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/padding_3" >
+
+    <TextView
+        android:id="@+id/text_name"
+        android:layout_width="240dp"
+        android:layout_height="wrap_content"
+        android:text="超市购物"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <TextView
+        android:id="@+id/text_value"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/text_name"
+        android:text="￥111"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <TextView
+        android:id="@+id/text_category"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/text_name"
+        android:layout_marginTop="@dimen/margin_10"
+        android:text="类别：日常开销"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+    <TextView
+        android:id="@+id/text_remark"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/text_category"
+        android:layout_toRightOf="@id/text_category"
+        android:text="备注：无"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+</RelativeLayout>
