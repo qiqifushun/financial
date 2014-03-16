@@ -1,5 +1,6 @@
 package com.ldq.financial.util;
 
+import java.text.DecimalFormat;
 import java.util.Calendar;
 
 public class Util {
@@ -19,4 +20,7 @@ public class Util {
         }
     }
 
+    public static String getFormattedValue(float value) {
+        return new DecimalFormat("0.##").format(value);
+    }
 }

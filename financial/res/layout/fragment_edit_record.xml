@@ -42,12 +42,20 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal" >
 
+            <TextView
+                android:id="@+id/text_minus"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="right"
+                android:text="—" />
+
             <EditText
                 android:id="@+id/edit_value"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="收支金额" >
+                android:hint="收支金额"
+                android:inputType="numberDecimal" >
             </EditText>
 
             <CheckBox

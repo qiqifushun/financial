@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
@@ -23,9 +24,12 @@ import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import com.ldq.financial.R;
 import com.ldq.financial.activity.EditRecordActivity;
@@ -42,6 +46,7 @@ public class FragmentEditRecord extends Fragment implements OnClickListener {
 
     private EditText editTextName;
     private EditText editTextValue;
+    private TextView textMinus;
     private CheckBox checkBox;
     private Button buttonTime;
     private Spinner spinner;
@@ -56,9 +61,9 @@ public class FragmentEditRecord extends Fragment implements OnClickListener {
         Bundle bundle = getArguments();
         if (bundle != null) {
             long recordId = bundle.getLong(EditRecordActivity.KEY_RECORD_ID);
+            time = bundle.getLong(FragmentRecordList.KEY_TIME);
             record = DaoSessionFactory.getDaoSession(getActivity())
                     .getRecordDao().load(recordId);
-            time = record.getTime();
         } else {
             time = System.currentTimeMillis();
         }
@@ -71,6 +76,7 @@ public class FragmentEditRecord extends Fragment implements OnClickListener {
                 false);
         editTextName = (EditText) view.findViewById(R.id.edit_name);
         editTextValue = (EditText) view.findViewById(R.id.edit_value);
+        textMinus = (TextView) view.findViewById(R.id.text_minus);
         checkBox = (CheckBox) view.findViewById(R.id.check_dispense);
         buttonTime = (Button) view.findViewById(R.id.btn_time);
         spinner = (Spinner) view.findViewById(R.id.spinner1);
@@ -109,6 +115,8 @@ public class FragmentEditRecord extends Fragment implements OnClickListener {
         if (record != null) {
             editTextName.setText(record.getRecordName());
             editTextValue.setText("" + Math.abs(record.getValue()));
+            textMinus.setVisibility(record.getIsPayment() ? View.VISIBLE
+                    : View.INVISIBLE);
             checkBox.setChecked(!record.getIsPayment());
 
             for (int i = 0, size = list.size(); i < size; i++) {
@@ -129,12 +137,19 @@ public class FragmentEditRecord extends Fragment implements OnClickListener {
         buttonTime.setText(new SimpleDateFormat("yyyy-MM-dd E", Locale.CHINA)
                 .format(new Date(time)));
         buttonTime.setOnClickListener(this);
-
+        checkBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                    boolean isChecked) {
+                textMinus.setVisibility(isChecked ? View.INVISIBLE
+                        : View.VISIBLE);
+            }
+        });
     }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.menu_add_record, menu);
+        inflater.inflate(R.menu.menu_edit_record, menu);
         super.onCreateOptionsMenu(menu, inflater);
     }
 
@@ -163,6 +178,7 @@ public class FragmentEditRecord extends Fragment implements OnClickListener {
             DaoSessionFactory.getDaoSession(getActivity()).getRecordDao()
                     .insertOrReplace(record);
 
+            getActivity().setResult(Activity.RESULT_OK);
             getActivity().finish();
             break;
 

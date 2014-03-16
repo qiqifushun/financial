@@ -8,5 +8,8 @@
     <string name="action_more">更多</string>
     <string name="hello_world">Hello world!</string>
     <string name="list_empty">没有数据，点击添加</string>
+    
+    <string name="display_income">显示收入</string>
+    <string name="hide_income">隐藏收入</string>
 
 </resources>

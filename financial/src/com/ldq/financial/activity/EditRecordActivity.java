@@ -6,6 +6,7 @@ import android.view.MenuItem;
 
 import com.ldq.financial.R;
 import com.ldq.financial.fragment.FragmentEditRecord;
+import com.ldq.financial.fragment.FragmentRecordList;
 
 public class EditRecordActivity extends FragmentActivity {
 
@@ -18,13 +19,18 @@ public class EditRecordActivity extends FragmentActivity {
 
         getActionBar().setDisplayHomeAsUpEnabled(true);
 
-        long recordId = getIntent().getLongExtra(KEY_RECORD_ID, -1L);
         FragmentEditRecord fragmentEditRecord = new FragmentEditRecord();
+        Bundle bundle = new Bundle();
+        long recordId = getIntent().getLongExtra(KEY_RECORD_ID, -1L);
         if (recordId != -1) {
-            Bundle bundle = new Bundle();
             bundle.putLong(KEY_RECORD_ID, recordId);
-            fragmentEditRecord.setArguments(bundle);
         }
+        long time = getIntent().getLongExtra(FragmentRecordList.KEY_TIME, -1L);
+        if (time != -1) {
+            bundle.putLong(FragmentRecordList.KEY_TIME, time);
+        }
+        fragmentEditRecord.setArguments(bundle);
+
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.framelayout, fragmentEditRecord).commit();
     }

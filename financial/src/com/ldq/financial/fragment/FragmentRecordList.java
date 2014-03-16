@@ -6,21 +6,24 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Fragment;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.text.TextUtils;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.BaseAdapter;
-import android.widget.ListAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -31,6 +34,8 @@ import com.ldq.financial.dao.RecordDao.Properties;
 import com.ldq.financial.factory.DaoSessionFactory;
 import com.ldq.financial.util.Util;
 
+import de.greenrobot.dao.query.QueryBuilder;
+
 public class FragmentRecordList extends Fragment {
 
     public static final String KEY_TIME = "time";
@@ -39,16 +44,25 @@ public class FragmentRecordList extends Fragment {
     private final int ID_DELETE = 2;
     private final int ID_MODIFY = 3;
 
+    private boolean displayIncome;
+
     private long time;
+
+    private RecordAdapter mRecordAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        setHasOptionsMenu(true);
+
         Bundle bundle = getArguments();
         if (bundle != null) {
             time = bundle.getLong(KEY_TIME);
+        } else {
+            time = System.currentTimeMillis();
         }
+
     }
 
     @Override
@@ -62,24 +76,59 @@ public class FragmentRecordList extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         loadData();
+        System.out.println("FragmentRecordList:onActivityCreated:"
+                + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
+                        .format(new Date(time)) + ":" + mRecordAdapter);
     }
 
     private void loadData() {
 
         View view = getView();
 
+        TextView textExpense = (TextView) view.findViewById(R.id.text_expense);
+        LinearLayout layoutIncome = (LinearLayout) view
+                .findViewById(R.id.layout_income);
+        TextView textIncome = (TextView) view.findViewById(R.id.text_income);
+        TextView textNetIncome = (TextView) view
+                .findViewById(R.id.text_net_income);
         ListView listView = (ListView) view.findViewById(R.id.listview);
         TextView textViewEmpty = (TextView) view.findViewById(R.id.text_empty);
 
         long[] between = new long[2];
         Util.setMonthStartEnd(time, between);
-        List<Record> list = DaoSessionFactory
+
+        QueryBuilder<Record> queryBuilder = DaoSessionFactory
                 .getDaoSession(getActivity())
                 .getRecordDao()
                 .queryBuilder()
                 .where(Properties.Time.ge(between[0]),
-                        Properties.Time.lt(between[1]))
-                .orderAsc(Properties.Time).list();
+                        Properties.Time.lt(between[1]));
+        int padding = (int) getResources().getDimension(R.dimen.padding_10);
+        if (!displayIncome) {
+            queryBuilder.where(Properties.IsPayment.eq(true));
+            layoutIncome.setVisibility(View.GONE);
+            textExpense.setPadding(padding, padding, padding, padding);
+        } else {
+            layoutIncome.setVisibility(View.VISIBLE);
+            textExpense.setPadding(padding, padding, padding, 0);
+        }
+        List<Record> list = queryBuilder.orderAsc(Properties.Time).list();
+
+        float expense = 0;
+        float income = 0;
+        float netincome = 0;
+        for (Record record : list) {
+            float value = record.getValue();
+            if (value > 0) {
+                income = income + value;
+            } else {
+                expense = expense + value;
+            }
+        }
+        netincome = income - expense;
+        textExpense.setText("月支出：￥" + Util.getFormattedValue(expense));
+        textIncome.setText("月收入：￥" + Util.getFormattedValue(income));
+        textNetIncome.setText("净收入：￥" + Util.getFormattedValue(netincome));
 
         if (list.isEmpty()) {
             listView.setVisibility(View.GONE);
@@ -87,41 +136,80 @@ public class FragmentRecordList extends Fragment {
             textViewEmpty.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent intent = new Intent(getActivity(),
-                            EditRecordActivity.class);
-                    startActivityForResult(intent, 0);
+                    toEditActivity(0, time);
                 }
             });
         } else {
             listView.setVisibility(View.VISIBLE);
             textViewEmpty.setVisibility(View.GONE);
-            RecordAdapter recordAdapter = new RecordAdapter(list);
-            listView.setAdapter(recordAdapter);
+            mRecordAdapter = new RecordAdapter(list);
+            listView.setAdapter(mRecordAdapter);
             registerForContextMenu(listView);
         }
 
     }
 
     @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_record_list, menu);
+        MenuItem menuItem = menu.findItem(R.id.menu_display_income);
+        menuItem.setTitle(displayIncome ? R.string.hide_income
+                : R.string.display_income);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        case R.id.menu_add:
+            Intent intent = new Intent(getActivity(), EditRecordActivity.class);
+            intent.putExtra(FragmentRecordList.KEY_TIME, time);
+            startActivityForResult(intent, 0);
+            break;
+        case R.id.menu_display_income:
+            displayIncome = !displayIncome;
+            loadData();
+            getActivity().invalidateOptionsMenu();
+            break;
+
+        default:
+            break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
     public void onCreateContextMenu(ContextMenu menu, View view,
             ContextMenuInfo menuInfo) {
-        ListAdapter adapter = ((ListView) view).getAdapter();
-        int type = adapter
+        super.onCreateContextMenu(menu, view, menuInfo);
+        int type = mRecordAdapter
                 .getItemViewType(((AdapterContextMenuInfo) menuInfo).position);
         if (type == RecordAdapter.TYPE_RECORD) {
             menu.add(1, ID_ADD, 1, "添加");
             menu.add(1, ID_DELETE, 2, "删除");
             menu.add(1, ID_MODIFY, 3, "修改");
         }
+        System.out.println("onCreateContextMenu:position:"
+                + ((AdapterContextMenuInfo) menuInfo).position + ":"
+                + mRecordAdapter);
     }
 
     @Override
     public boolean onContextItemSelected(final MenuItem item) {
+        AdapterContextMenuInfo menuInfo = (AdapterContextMenuInfo) item
+                .getMenuInfo();
+        System.out.println("onContextItemSelected:position:"
+                + menuInfo.position + ":" + mRecordAdapter);
+        DisplayRecord displayRecord = (DisplayRecord) mRecordAdapter
+                .getItem(menuInfo.position);
+        final Record record = displayRecord.record;
+
         switch (item.getItemId()) {
+
         case ID_ADD:
-            Intent add = new Intent(getActivity(), EditRecordActivity.class);
-            startActivity(add);
+            toEditActivity(0, record.getTime());
             break;
+
         case ID_DELETE:
             new AlertDialog.Builder(getActivity())
                     .setTitle("警告")
@@ -131,33 +219,15 @@ public class FragmentRecordList extends Fragment {
                                 @Override
                                 public void onClick(DialogInterface dialog,
                                         int which) {
-                                    AdapterContextMenuInfo menuInfo = (AdapterContextMenuInfo) item
-                                            .getMenuInfo();
-                                    ListView listView = (ListView) getView()
-                                            .findViewById(R.id.listview);
-                                    RecordAdapter adapter = (RecordAdapter) listView
-                                            .getAdapter();
-                                    DisplayRecord displayRecord = (DisplayRecord) adapter
-                                            .getItem(menuInfo.position);
                                     DaoSessionFactory.getDaoSession(
-                                            getActivity()).delete(
-                                            displayRecord.record);
+                                            getActivity()).delete(record);
                                     loadData();
                                 }
                             }).setNegativeButton("取消", null).create().show();
             break;
+
         case ID_MODIFY:
-            Intent modify = new Intent(getActivity(), EditRecordActivity.class);
-            AdapterContextMenuInfo menuInfo = (AdapterContextMenuInfo) item
-                    .getMenuInfo();
-            ListView listView = (ListView) getView()
-                    .findViewById(R.id.listview);
-            RecordAdapter adapter = (RecordAdapter) listView.getAdapter();
-            DisplayRecord displayRecord = (DisplayRecord) adapter
-                    .getItem(menuInfo.position);
-            modify.putExtra(EditRecordActivity.KEY_RECORD_ID,
-                    displayRecord.record.getId());
-            startActivity(modify);
+            toEditActivity(record.getId(), record.getTime());
             break;
 
         default:
@@ -166,10 +236,31 @@ public class FragmentRecordList extends Fragment {
         return true;
     }
 
+    private void toEditActivity(long recordId, long time) {
+        Intent intent = new Intent(getActivity(), EditRecordActivity.class);
+        if (recordId > 0) {
+            intent.putExtra(EditRecordActivity.KEY_RECORD_ID, recordId);
+        }
+        if (time > 0) {
+            intent.putExtra(KEY_TIME, time);
+        }
+        startActivityForResult(intent, 0);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        System.out.println("FragmentRecordList:onActivityResult" + ":"
+                + mRecordAdapter);
+        if (resultCode == Activity.RESULT_OK) {
+            loadData();
+        }
+    }
+
     class RecordAdapter extends BaseAdapter {
 
-        private static final int TYPE_HEADER = 1;
-        private static final int TYPE_RECORD = 2;
+        private static final int TYPE_HEADER = 0;
+        private static final int TYPE_RECORD = 1;
 
         private List<DisplayRecord> displayRecords;
 
@@ -192,10 +283,8 @@ public class FragmentRecordList extends Fragment {
             DisplayRecord displayRecord = (DisplayRecord) getItem(position);
             if (displayRecord.date != null) {
                 return TYPE_HEADER;
-            } else if (displayRecord.record != null) {
-                return TYPE_RECORD;
             } else {
-                return 0;
+                return TYPE_RECORD;
             }
         }
 
@@ -247,12 +336,14 @@ public class FragmentRecordList extends Fragment {
             if (TYPE_HEADER == getItemViewType(position)) {
                 HolderHeader holder = (HolderHeader) view.getTag();
                 holder.date.setText(displayRecord.date);
-                holder.sum.setText("合计：￥" + displayRecord.sum);
+                holder.sum.setText("合计：￥"
+                        + Util.getFormattedValue(displayRecord.sum));
             } else if (TYPE_RECORD == getItemViewType(position)) {
                 HolderRecord holder = (HolderRecord) view.getTag();
                 Record record = displayRecord.record;
                 holder.name.setText(record.getRecordName());
-                holder.value.setText("￥ " + record.getValue());
+                holder.value.setText("￥ "
+                        + Util.getFormattedValue(record.getValue()));
                 holder.category.setText("类别："
                         + record.getCategory().getCategoryName());
                 holder.remark.setText("备注：" + record.getRemarks());

@@ -4,6 +4,39 @@
     android:layout_height="match_parent"
     android:orientation="vertical" >
 
+    <TextView
+        android:id="@+id/text_expense"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/yellow_light"
+        android:padding="@dimen/padding_10"
+        android:text="总支出：" />
+
+    <LinearLayout
+        android:id="@+id/layout_income"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/yellow_light"
+        android:orientation="horizontal"
+        android:paddingBottom="@dimen/padding_10"
+        android:paddingLeft="@dimen/padding_10"
+        android:paddingRight="@dimen/padding_10" >
+
+        <TextView
+            android:id="@+id/text_income"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="总收入：" />
+
+        <TextView
+            android:id="@+id/text_net_income"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="净收入：" />
+    </LinearLayout>
+
     <ListView
         android:id="@+id/listview"
         android:layout_width="match_parent"

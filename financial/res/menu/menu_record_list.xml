@@ -11,6 +11,12 @@
         android:icon="@drawable/ic_menu_more"
         android:orderInCategory="100"
         android:showAsAction="ifRoom"
-        android:title="@string/action_more"/>
+        android:title="@string/action_more">
+        <menu>
+            <item
+                android:id="@+id/menu_display_income"
+                android:title="显示收入"/>
+        </menu>
+    </item>
 
 </menu>
